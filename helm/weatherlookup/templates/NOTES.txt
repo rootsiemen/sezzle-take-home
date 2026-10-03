@@ -1,0 +1,13 @@
+Weather Lookup has been deployed.
+
+The service is available locally through NodePort:
+
+  http://127.0.0.1:{{ .Values.service.nodePort }}
+
+Then try:
+
+  curl 'http://127.0.0.1:{{ .Values.service.nodePort }}/weather?location=Minneapolis'
+  curl 'http://127.0.0.1:{{ .Values.service.nodePort }}/healthz'
+
+Response logging is enabled when the PostgreSQL auth Secret
+{{ .Values.database.secretName }} is present.

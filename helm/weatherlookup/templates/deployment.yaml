@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "weatherlookup.fullname" . }}
+  labels:
+    {{- include "weatherlookup.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "weatherlookup.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "weatherlookup.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "weatherlookup.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+            - name: CACHE_TTL
+              value: {{ .Values.cache.ttl | quote }}
+            - name: CACHE_MAX_STALE_AGE
+              value: {{ .Values.cache.maxStaleAge | quote }}
+            - name: CACHE_FILL_TIMEOUT
+              value: {{ .Values.cache.fillTimeout | quote }}
+            - name: CACHE_MAX_ENTRIES
+              value: {{ .Values.cache.maxEntries | quote }}
+            - name: VENDOR_MAX_ATTEMPTS
+              value: {{ .Values.vendor.maxAttempts | quote }}
+            - name: VENDOR_MAX_IN_FLIGHT
+              value: {{ .Values.vendor.maxInFlight | quote }}
+            - name: VENDOR_BREAKER_FAILURE_THRESHOLD
+              value: {{ .Values.vendor.breakerFailureThreshold | quote }}
+            - name: VENDOR_BREAKER_COOLDOWN
+              value: {{ .Values.vendor.breakerCooldown | quote }}
+            - name: REQUEST_MAX_IN_FLIGHT
+              value: {{ .Values.admission.maxInFlight | quote }}
+            - name: DATABASE_QUEUE_SIZE
+              value: {{ .Values.responseLog.queueSize | quote }}
+            - name: DATABASE_WORKERS
+              value: {{ .Values.responseLog.workers | quote }}
+            - name: DATABASE_RETENTION
+              value: {{ .Values.responseLog.retention | quote }}
+            {{- if .Values.database.enabled }}
+            - name: DATABASE_HOST
+              value: {{ .Values.database.host | quote }}
+            - name: DATABASE_PORT
+              value: {{ .Values.database.port | quote }}
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: database
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: password
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,127 @@
+replicaCount: 1
+
+image:
+  repository: weatherlookup
+  pullPolicy: Never
+  tag: local
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+service:
+  type: NodePort
+  port: 8080
+  nodePort: 30080
+
+database:
+  enabled: true
+  host: weatherlookup-postgres
+  port: 5432
+  secretName: weatherlookup-postgres-auth
+
+cache:
+  ttl: 5m
+  maxStaleAge: 15m
+  fillTimeout: 5s
+  maxEntries: 10000
+
+vendor:
+  maxAttempts: 2
+  maxInFlight: 8
+  breakerFailureThreshold: 5
+  breakerCooldown: 30s
+
+admission:
+  maxInFlight: 64
+
+responseLog:
+  queueSize: 1000
+  workers: 1
+  retention: 168h
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: weatherlookup.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 1
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+env:
+  - name: PORT
+    value: "8080"
+  - name: REQUEST_TIMEOUT
+    value: 5s
+  - name: OPEN_METEO_TIMEOUT
+    value: 4s
+  - name: OPEN_METEO_BASE_URL
+    value: https://api.open-meteo.com
+  - name: OPEN_METEO_GEOCODING_BASE_URL
+    value: https://geocoding-api.open-meteo.com
+  - name: OTEL_SERVICE_NAME
+    value: weatherlookup
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://lgtm.observability.svc.cluster.local:4318

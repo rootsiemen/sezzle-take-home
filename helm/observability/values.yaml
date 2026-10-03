@@ -1,0 +1,66 @@
+replicaCount: 1
+
+image:
+  repository: grafana/otel-lgtm
+  tag: "0.33.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  ports:
+    grafana: 3000
+    otlpGrpc: 4317
+    otlpHttp: 4318
+    prometheus: 9090
+    loki: 3100
+    tempo: 3200
+    pyroscope: 4040
+
+# Expose only Grafana's HTTP UI outside the cluster. The lgtm service above
+# remains ClusterIP so telemetry backends stay internal.
+grafanaService:
+  enabled: true
+  type: NodePort
+  port: 3000
+  nodePort: 30300
+
+admin:
+  user: admin
+  password: admin
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+probes:
+  startup:
+    path: /api/health
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 60
+  liveness:
+    path: /api/health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 6
+  readiness:
+    path: /api/health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 6
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

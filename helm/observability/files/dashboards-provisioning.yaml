@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: Weather Lookup
+    orgId: 1
+    folder: Weather Lookup
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /otel-lgtm/grafana/conf/provisioning/dashboards/weatherlookup
+      foldersFromFilesStructure: false

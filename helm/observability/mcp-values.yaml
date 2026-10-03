@@ -1,0 +1,29 @@
+grafana:
+  url: http://lgtm:3000
+  apiKeySecret:
+    name: grafana-mcp-token
+    key: token
+
+# The Grafana service account is Viewer-only, and the MCP server does not
+# expose write tools in this local deployment.
+disableWrite: true
+
+service:
+  type: NodePort
+  nodePort: 30800
+
+extraArgs:
+  - --transport
+  - streamable-http
+  - --address
+  - :8000
+  - --endpoint-path
+  - /mcp
+  - --allowed-hosts
+  - localhost:30800,127.0.0.1:30800,[::1]:30800,grafana-mcp:8000,grafana-mcp.observability.svc.cluster.local:8000
+
+envValueFrom:
+  MCP_GRAFANA_SERVER_TOKEN:
+    secretKeyRef:
+      name: grafana-mcp-server-token
+      key: token

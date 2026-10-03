@@ -1,0 +1,61 @@
+groups:
+  - name: weatherlookup
+    rules:
+      - alert: WeatherLookupVendorHighErrorRate
+        expr: |
+          (
+            sum(rate(weatherlookup_vendor_requests_total{outcome!="success"}[5m]))
+            /
+            sum(rate(weatherlookup_vendor_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Weather Lookup vendor error rate is high
+          description: More than 5% of Open-Meteo requests have failed for five minutes.
+
+      - alert: WeatherLookupHighP95Latency
+        expr: histogram_quantile(0.95, sum(rate(weatherlookup_http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Weather Lookup p95 latency is high
+          description: HTTP p95 latency has exceeded one second for ten minutes.
+
+      - alert: WeatherLookupStaleResponses
+        expr: sum(rate(weatherlookup_stale_responses_total[10m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Weather Lookup is serving stale weather
+          description: Stale cached responses are being served because the vendor is unhealthy.
+
+      - alert: WeatherLookupResponseLogDrops
+        expr: increase(weatherlookup_response_log_dropped_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Weather Lookup response logs are being dropped
+          description: Response records were lost to queue overflow or database failures. Inspect weatherlookup_response_log_dropped_by_reason_total for the cause.
+
+      - alert: WeatherLookupDatabaseWriteFailures
+        expr: increase(weatherlookup_response_log_writes_total{outcome!="success"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Weather Lookup response persistence is failing
+          description: PostgreSQL response-log writes have failed during the last five minutes.
+
+      - alert: WeatherLookupResponseLogQueueHigh
+        expr: weatherlookup_response_log_queue_depth > 800
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Weather Lookup response-log queue is near capacity
+          description: More than 80% of the response-log queue is occupied.

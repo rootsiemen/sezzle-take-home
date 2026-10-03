@@ -1,0 +1,20 @@
+{{- if .Values.grafanaService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lgtm.fullname" . }}-grafana
+  labels:
+    {{- include "lgtm.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.grafanaService.type }}
+  ports:
+    - name: grafana
+      port: {{ .Values.grafanaService.port }}
+      {{- if and (eq .Values.grafanaService.type "NodePort") .Values.grafanaService.nodePort }}
+      nodePort: {{ .Values.grafanaService.nodePort }}
+      {{- end }}
+      targetPort: grafana
+      protocol: TCP
+  selector:
+    {{- include "lgtm.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,72 @@
+controller:
+  # One replica is enough for this local, single-service deployment and
+  # prevents duplicate log streams that a namespace-scoped DaemonSet would
+  # create when reading pod logs through the Kubernetes API.
+  type: deployment
+  replicas: 1
+
+rbac:
+  # Keep log discovery limited to the application namespace.
+  namespaces:
+    - weatherlookup
+
+alloy:
+  stabilityLevel: generally-available
+  enableReporting: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  configMap:
+    create: true
+    content: |
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      discovery.kubernetes "pods" {
+        role = "pod"
+
+        namespaces {
+          names = ["weatherlookup"]
+        }
+      }
+
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label  = "app"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://lgtm.observability.svc.cluster.local:3100/loki/api/v1/push"
+        }
+      }

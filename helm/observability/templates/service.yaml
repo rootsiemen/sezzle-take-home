@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lgtm.fullname" . }}
+  labels:
+    {{- include "lgtm.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: grafana
+      port: {{ .Values.service.ports.grafana }}
+      targetPort: grafana
+      protocol: TCP
+    - name: otlp-grpc
+      port: {{ .Values.service.ports.otlpGrpc }}
+      targetPort: otlp-grpc
+      protocol: TCP
+    - name: otlp-http
+      port: {{ .Values.service.ports.otlpHttp }}
+      targetPort: otlp-http
+      protocol: TCP
+    - name: prometheus
+      port: {{ .Values.service.ports.prometheus }}
+      targetPort: prometheus
+      protocol: TCP
+    - name: loki
+      port: {{ .Values.service.ports.loki }}
+      targetPort: loki
+      protocol: TCP
+    - name: tempo
+      port: {{ .Values.service.ports.tempo }}
+      targetPort: tempo
+      protocol: TCP
+    - name: pyroscope
+      port: {{ .Values.service.ports.pyroscope }}
+      targetPort: pyroscope
+      protocol: TCP
+  selector:
+    {{- include "lgtm.selectorLabels" . | nindent 4 }}

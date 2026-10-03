@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lgtm.fullname" . }}-config
+  labels:
+    {{- include "lgtm.labels" . | nindent 4 }}
+data:
+  prometheus.yaml: |-
+    {{- .Files.Get "files/prometheus.yaml" | nindent 4 }}
+  rules.yaml: |-
+    {{- .Files.Get "files/rules.yaml" | nindent 4 }}
+  dashboards-provisioning.yaml: |-
+    {{- .Files.Get "files/dashboards-provisioning.yaml" | nindent 4 }}
+  weatherlookup.json: |-
+    {{- .Files.Get "files/weatherlookup.json" | nindent 4 }}

@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lgtm.fullname" . }}
+  labels:
+    {{- include "lgtm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "lgtm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lgtm.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: lgtm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.admin.user | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.admin.password | quote }}
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+            - name: GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
+              value: /otel-lgtm/grafana/conf/provisioning/dashboards/weatherlookup/weatherlookup.json
+            - name: TEMPO_EXTRA_ARGS
+              value: --query-frontend.mcp-server.enabled=true
+          ports:
+            - name: grafana
+              containerPort: {{ .Values.service.ports.grafana }}
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: {{ .Values.service.ports.otlpGrpc }}
+              protocol: TCP
+            - name: otlp-http
+              containerPort: {{ .Values.service.ports.otlpHttp }}
+              protocol: TCP
+            - name: prometheus
+              containerPort: {{ .Values.service.ports.prometheus }}
+              protocol: TCP
+            - name: loki
+              containerPort: {{ .Values.service.ports.loki }}
+              protocol: TCP
+            - name: tempo
+              containerPort: {{ .Values.service.ports.tempo }}
+              protocol: TCP
+            - name: pyroscope
+              containerPort: {{ .Values.service.ports.pyroscope }}
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /otel-lgtm/prometheus.yaml
+              subPath: prometheus.yaml
+              readOnly: true
+            - name: config
+              mountPath: /otel-lgtm/rules.yaml
+              subPath: rules.yaml
+              readOnly: true
+            - name: config
+              mountPath: /otel-lgtm/grafana/conf/provisioning/dashboards/weatherlookup.yaml
+              subPath: dashboards-provisioning.yaml
+              readOnly: true
+            - name: config
+              mountPath: /otel-lgtm/grafana/conf/provisioning/dashboards/weatherlookup/weatherlookup.json
+              subPath: weatherlookup.json
+              readOnly: true
+            - name: data
+              mountPath: /data
+            - name: loki-data
+              mountPath: /loki
+            - name: tempo-data
+              mountPath: /tmp/tempo
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startup.path }}
+              port: grafana
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: grafana
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: grafana
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "lgtm.fullname" . }}-config
+        - name: data
+          emptyDir: {}
+        - name: loki-data
+          emptyDir: {}
+        - name: tempo-data
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

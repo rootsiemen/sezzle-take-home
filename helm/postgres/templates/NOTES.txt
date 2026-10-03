@@ -1,0 +1,7 @@
+PostgreSQL is available inside the cluster at:
+
+  {{ include "postgres.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+The Weather Lookup deployment expects the auth Secret:
+
+  {{ include "postgres.authSecret" . }}

@@ -1,0 +1,14 @@
+LGTM is available inside the cluster through the lgtm service.
+
+Grafana is available locally through NodePort:
+  http://127.0.0.1:{{ .Values.grafanaService.nodePort }}
+
+Port-forward all LGTM ports locally when needed:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "lgtm.fullname" . }} 3000:3000
+
+Then open http://127.0.0.1:{{ .Values.grafanaService.nodePort }} and sign in with the configured admin credentials.
+The provisioned dashboard is named "Weather Lookup / RED".
+
+OTLP endpoints for workloads in the cluster:
+  http://{{ include "lgtm.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:4318
+  {{ include "lgtm.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:4317
